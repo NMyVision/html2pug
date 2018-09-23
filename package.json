@@ -1,5 +1,5 @@
 {
-  "name": "html2pug",
+  "name": "@nmv/html2pug",
   "version": "1.0.0",
   "description": "A zero dependency library for converting html to Pug format. With enhanced features like tag skipping and collapsed output",
   "main": "src/parser.js",

@@ -1,4 +1,4 @@
-type NodeLike = (Node & ChildNode)
+export type NodeLike = (Node & ChildNode)
 
 enum HtmlNodeType {
   Element = 1,
@@ -16,7 +16,7 @@ export interface IParserOptions {
   omitPre: boolean;
 }
 
-export class Parser {
+export default class Parser {
 
   public static defaultValues = () => ({
     tabs: false,

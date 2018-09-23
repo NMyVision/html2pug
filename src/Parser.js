@@ -216,4 +216,5 @@ Parser.defaultValues = () => ({
     recommended: false,
     omitPre: true
 });
-exports.Parser = Parser;
+exports.default = Parser;
+//# sourceMappingURL=parser.js.map

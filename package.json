@@ -1,0 +1,33 @@
+{
+  "name": "html2pug",
+  "version": "1.0.0",
+  "description": "A zero dependency library for converting html to Pug format. With enhanced features like tag skipping and collapsed output",
+  "main": "src/parser.js",
+  "author": "Matt Gambill",
+  "homepage": "https://github.com/NMyVision/html2pug#readme",
+  "license": "ISC",
+  "keywords": [
+    "pug",
+    "pug2html"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NMyVision/html2pug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NMyVision/html2pug/issues"
+  },
+  "engines": {
+    "node": ">= 8"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "prettier": "^1.14.3",
+    "tslint": "^5.11.0",
+    "tslint-config-prettier": "^1.15.0",
+    "typescript": "^3.0.3"
+  },
+  "scripts": {
+    "lint": "tslint  --fix -c tslint.json 'src/**/*.ts'"
+  },
+}

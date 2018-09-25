@@ -6,132 +6,38 @@ var HtmlNodeType;
     HtmlNodeType[HtmlNodeType["Text"] = 3] = "Text";
     HtmlNodeType[HtmlNodeType["CData"] = 4] = "CData";
     HtmlNodeType[HtmlNodeType["Comment"] = 8] = "Comment";
+    HtmlNodeType[HtmlNodeType["Document"] = 9] = "Document";
     HtmlNodeType[HtmlNodeType["DocumentType"] = 10] = "DocumentType";
 })(HtmlNodeType || (HtmlNodeType = {}));
 class Parser {
-    constructor(options = Parser.defaultValues()) {
-        this.options = options;
-        this.NewLine = "\n";
-        this.childContains = (node, text) => node.childNodes[0] ? node.childNodes[0].nodeValue === null ? false : (node.childNodes[0].nodeValue || "").indexOf(text) > -1 : false;
-        this.isTextNode = (node) => node.nodeType === HtmlNodeType.Text;
-        this.isCommentNode = (node) => node.nodeType === HtmlNodeType.Comment;
-        this.isElementNode = (node) => node.nodeType === HtmlNodeType.Element;
-        this.isDocumentTypeNode = (node) => node.nodeType === HtmlNodeType.DocumentType;
-        this.isEmptyTextNode = (node) => this.isTextNode(node) && (node.nodeValue || "").trim().length === 0;
-        this.isElementSingleTextNode = (node) => node.hasChildNodes() && node.childNodes.length === 1 && this.isTextNode(node.childNodes[0]) && !this.childContains(node, this.NewLine);
-        this.isElementMultiTextNode = (node) => node.hasChildNodes() && node.childNodes.length === 1 && this.isTextNode(node.childNodes[0]) && this.childContains(node, this.NewLine);
-        this.getNodes = (node) => Array.from(node.childNodes).filter(child => !this.isEmptyTextNode(child));
-        this.Indent = (level) => this.indent.repeat(level);
-        this.pug = [];
-        this.indent = this.options.tabs ? "\t" : "  ";
-    }
     parse(content) {
+        debugger;
         if (content === null) {
             return "";
         }
-        let root = content;
+        let children = null;
+        const parser = new DOMParser();
         if (typeof content === "string") {
-            root = document.createElement("fake");
-            root.innerHTML = content;
-        }
-        const tree = this.getNodes(root);
-        for (const node of tree) {
-            const text = this.parseNode(node, 0);
-            if (text !== null) {
-                this.pug.push(text);
-            }
-        }
-        return this.pug.join(this.NewLine);
-    }
-    parseNode(node, level) {
-        const indent = this.indent.repeat(level);
-        if (this.isDocumentTypeNode(node)) {
-            return `${indent}doctype html`;
-        }
-        if (this.isTextNode(node)) {
-            return this.writeText(node.nodeValue || "", indent, "| ", node);
-        }
-        if (this.isCommentNode(node)) {
-            const comment = node.nodeValue || "";
-            return this.writeText(comment.trim(), indent, "// ");
-        }
-        if (this.options.collapse && this.canCollapse(node)) {
-            return this.parseAndCollapse(node, indent);
-        }
-        if (this.isElementNode(node)) {
-            const line = [];
-            const tagName = node.tagName.toLowerCase();
-            if (tagName === "pre" && this.options.omitPre) {
-                line.push(`${indent}${this.setAttributes(node)}`);
-                line.push(this.writeText("content omitted", this.Indent(level + 1), "//- "));
-                return line.join(this.NewLine);
-            }
-            if (this.isElementMultiTextNode(node)) {
-                if (this.options.textElements.indexOf(tagName) > -1) {
-                    line.push(`${indent}${this.setAttributes(node)}.`);
-                    line.push(this.writeText(node.childNodes[0].nodeValue || "", this.Indent(level + 1), ""));
-                    return line.join(this.NewLine);
-                }
-                line.push(`${indent}${this.setAttributes(node)}`);
-            }
-            else if (this.isElementSingleTextNode(node)) {
-                const text = node.childNodes[0].nodeValue || "";
-                return `${indent}${this.setAttributes(node)} ${text}`;
-            }
-            else {
-                line.push(`${indent}${this.setAttributes(node)}`);
-            }
-            if (node.hasChildNodes()) {
-                for (const child of this.getNodes(node)) {
-                    line.push(this.parseNode(child, level + 1) || "");
-                }
-            }
-            return line.join(this.NewLine);
+            children = parser.parseFromString(content, "text/html");
         }
         else {
-            return "";
+            children = parser.parseFromString(content.outerHTML, "text/html");
         }
+        const tree = Array.from(children.childNodes).map(x => this.parseNode(x, undefined));
+        let results = [];
+        //if (tree.nodeType === HtmlNodeType.DocumentType)
+        //  results.push(`doctype html`);
+        results.concat(...tree.filter(x => x !== null).map(x => this.writeBranch(x, results)));
+        return results.join("\n");
     }
-    writeText(source, indent, prefix, node = null) {
-        const text = source.split(this.NewLine).filter(x => x !== null && x.trim().length > 0);
-        // if (text.length > 1) {
-        let first = true;
-        const multiLine = text
-            .map(line => {
-            const temp = [];
-            if (node !== null && node.nextSibling !== null && node.nextSibling.nodeType === HtmlNodeType.Element) {
-                if (this.options.recommended) {
-                    temp.push(`${indent}${prefix}${line.trim()}`);
-                    temp.push(`${indent}${prefix} `);
-                }
-                else {
-                    temp.push(`${indent}${prefix}${line.trim()} `);
-                }
-            }
-            else if (node !== null && node.previousSibling !== null && node.previousSibling.nodeType === HtmlNodeType.Element && first) {
-                first = false;
-                if (this.options.recommended) {
-                    temp.push(`${indent}${prefix} `);
-                    temp.push(`${indent}${prefix}${line.trim()}`);
-                }
-                else {
-                    temp.push(`${indent}${prefix} ${line.trim()}`);
-                }
-            }
-            else {
-                temp.push(`${indent}${prefix}${line.trim()}`);
-            }
-            return temp.join(this.NewLine);
-        });
-        return multiLine.join(this.NewLine);
-    }
-    setAttributes(node) {
+    indent(level) { return "..".repeat(level); }
+    writeNode(node) {
         const tagName = node.tagName.toLowerCase();
         const attributeList = [];
-        let classes = "";
         const pugNode = [];
-        pugNode.push(tagName);
+        let classes = "";
         let shorten = false;
+        pugNode.push(tagName);
         for (const a of Array.from(node.attributes)) {
             const name = a.name;
             const value = a.value;
@@ -163,58 +69,159 @@ class Parser {
         }
         return pugNode.join("");
     }
-    parseAndCollapse(node, indent) {
-        const result = [];
-        do {
-            if (this.isElementSingleTextNode(node)) {
-                result.push(`${this.setAttributes(node)} ${node.firstChild ? node.firstChild.nodeValue : ""}`);
-                break;
+    parseNode(node, level = 0) {
+        if (node === null)
+            return null;
+        let tagName = node.localName || "";
+        if (node.nodeType === HtmlNodeType.DocumentType) {
+            var p0 = {
+                pug: `doctype ${node.nodeName}`,
+                type: node.nodeType,
+                tag: tagName,
+                text: [],
+                children: [],
+                hasChildren: false,
+                oneChild: false,
+                firstChildType: null,
+                level: 0
+            };
+            return p0;
+        }
+        else if (node.nodeType === HtmlNodeType.Document) {
+            var p0 = {
+                pug: `${node.localName}`,
+                type: node.nodeType,
+                tag: tagName,
+                text: [],
+                children: [],
+                hasChildren: false,
+                oneChild: false,
+                firstChildType: null,
+                level: 0
+            };
+            return p0;
+        }
+        else if (node.nodeType === HtmlNodeType.Element) {
+            var c = node.hasChildNodes()
+                ? Array.from(node.childNodes)
+                    .map(n => this.parseNode(n, level + 1))
+                    .filter(x => x !== null)
+                : [];
+            var hc = c.length > 0;
+            var p1 = {
+                pug: this.writeNode(node),
+                type: node.nodeType,
+                tag: tagName,
+                text: [],
+                children: c,
+                hasChildren: hc,
+                oneChild: hc ? c.length === 1 : false,
+                firstChildType: hc ? c[0].type : null,
+                level: level
+            };
+            return p1;
+        }
+        else if (node.nodeType === HtmlNodeType.Text || node.nodeType === HtmlNodeType.Comment) {
+            if (!node.nodeValue || node.nodeValue.trim().length === 0)
+                return null;
+            var lines = node.nodeValue
+                .split("\n")
+                .map(this.mapText)
+                .filter(x => x.length > 0);
+            if (lines.length > 1 && lines[0].line.trim().length === 0) {
+                // clean up empty first lines combine with the second line
+                lines[1].line = " " + lines[1].line;
+                lines.splice(0, 1);
             }
-            const child = node.firstChild;
-            if (this.isTextNode(child) || this.isElementNode(child)) {
-                if (this.isTextNode(node)) {
-                    const text = (node.nodeValue || "").trim();
-                    if (text.length === 0) {
-                        return null;
-                    }
-                    result.push(text);
-                }
-                else if (this.isElementNode(node)) {
-                    result.push(`${this.setAttributes(node)}:`);
-                }
-                node = Array.from(node.childNodes).filter(x => x.nodeType !== HtmlNodeType.Text)[0];
-                if (node === undefined) {
-                    node = child;
-                }
-            }
-            // eslint-disable-next-line
-        } while (true);
-        return `${indent}${result.join(" ")}`;
+            var p2 = {
+                //pug: null,
+                type: node.nodeType,
+                //tag: null,
+                text: lines.filter(x => x.line.length > 0),
+                children: [],
+                hasChildren: false,
+                //firstChildType: null,
+                level: level
+            };
+            return p2;
+        }
+        return null;
     }
-    canCollapse(node) {
-        if (!node.hasChildNodes()) {
+    mapText(line, index, arr) {
+        var len = arr.length;
+        var x = {
+            length: line.length,
+            raw: `[${line.replace(/\t/g, "*").replace(/ /g, ".")}]`,
+            line: "",
+            isFirst: index === 0,
+            isLast: index === len - 1,
+            isOnly: len === 1,
+            spaceStart: line.indexOf(" ") === 0,
+            spaceEnd: line.lastIndexOf(" ") === line.length - 1
+        };
+        x.line = [x.spaceStart ? " " : "", line.trim(), x.spaceEnd ? " " : ""].join("");
+        return x;
+    }
+    canCollapse(leaf) {
+        if (leaf.type === HtmlNodeType.Comment ||
+            (leaf.type === HtmlNodeType.Text && leaf.text.length > 1) ||
+            (leaf.type !== HtmlNodeType.Text && !leaf.oneChild))
             return false;
+        return leaf.children.every(x => this.canCollapse(x));
+    }
+    writeBranch(leaf, lines = [], prefix = "") {
+        console.log(leaf);
+        if (leaf.type === HtmlNodeType.DocumentType) {
+            lines.push(leaf.pug);
         }
-        if (Array.from(node.childNodes).filter(x => x.nodeType !== HtmlNodeType.Text).length > 1) {
-            return false;
+        else if (this.canCollapse(leaf) && leaf.type !== HtmlNodeType.Text) {
+            var line = this.writeStick(leaf).join(" ");
+            lines.push(`${this.indent(leaf.level)}${line}`);
         }
-        if (node.innerText && node.innerText.indexOf(this.NewLine) > -1) {
-            return false;
-        }
-        for (const child of Array.from(node.childNodes).filter(x => this.isElementNode(x))) {
-            if (!this.canCollapse(child)) {
-                return false;
+        else {
+            if (leaf.type === HtmlNodeType.Element) {
+                let root = `${this.indent(leaf.level)}${leaf.pug}`;
+                if (leaf.oneChild && leaf.firstChildType === HtmlNodeType.Text) {
+                    if (leaf.children[0].text[0].isOnly)
+                        lines.push(`${root} ${leaf.children[0].text[0].line}`);
+                    else {
+                        lines.push(`${root}.`);
+                        leaf.children.forEach(c => this.writeBranch(c, lines, ""));
+                    }
+                }
+                else {
+                    lines.push(`${root}`);
+                    leaf.children.forEach(c => this.writeBranch(c, lines, "| "));
+                }
+            }
+            else if (leaf.type === HtmlNodeType.Text) {
+                lines.push(...leaf.text.map(c => `${this.indent(leaf.level)}${prefix}${c.line}`));
+            }
+            else if (leaf.type === HtmlNodeType.Comment) {
+                let root = `${this.indent(leaf.level)}//`;
+                if (leaf.text[0].isOnly)
+                    lines.push(`${root} ${leaf.text[0].line.trim()}`);
+                else {
+                    lines.push(`${root}`);
+                    lines.push(...leaf.text.map(c => `${this.indent(leaf.level + 1)}${c.line.trim()}`));
+                }
             }
         }
-        return true;
+        return lines;
+    }
+    writeStick(leaf, lines = []) {
+        if (leaf.type === HtmlNodeType.Element) {
+            var temp = leaf.pug;
+            if (leaf.firstChildType !== HtmlNodeType.Text)
+                temp += ":";
+            lines.push(temp);
+            leaf.children.forEach(c => this.writeStick(c, lines));
+        }
+        else if (leaf.type === HtmlNodeType.Text) {
+            lines.push(...leaf.text.map(c => `${c.line}`));
+        }
+        return lines;
     }
 }
-Parser.defaultValues = () => ({
-    tabs: false,
-    collapse: true,
-    textElements: ["script", "pre"],
-    recommended: false,
-    omitPre: true
-});
-exports.default = Parser;
+exports.Parser = Parser;
 //# sourceMappingURL=parser.js.map

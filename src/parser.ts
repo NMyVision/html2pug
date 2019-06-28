@@ -56,7 +56,7 @@ export default class Parser {
 
 
   public parse(content: HTMLElement | string) {
-    debugger;
+   
     if (content === null) {
       return "";
     }

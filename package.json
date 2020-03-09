@@ -25,13 +25,35 @@
   "engines": {
     "node": ">= 8"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@types/node": "^13.9.0",
+    "ts-jest": "^25.2.1"
+  },
   "devDependencies": {
+    "@babel/core": "^7.8.7",
+    "@babel/preset-env": "^7.8.7",
+    "@babel/preset-typescript": "^7.8.3",
+    "@types/jest": "^25.1.4",
+    "babel-jest": "^25.1.0",
+    "jest": "^25.1.0",
     "lint-staged": "^7.3.0",
     "prettier": "^1.14.3",
     "tslint": "^5.11.0",
     "tslint-config-prettier": "^1.15.0",
-    "typescript": "^3.0.3"
+    "typescript": "^3.8.3"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        },
+        "@babel/preset-typescript"
+      ]
+    ]
   },
   "gitHooks": {
     "pre-commit": "lint-staged"
@@ -42,5 +64,12 @@
       "tslint -c tslint.json 'src/**/*.ts'",
       "git add"
     ]
+  },
+  "prettier": {
+    "parser": "typescript",
+    "printWidth": 120,
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": false
   }
 }

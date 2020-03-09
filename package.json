@@ -2,8 +2,8 @@
   "name": "@nmyvision/html2pug",
   "version": "1.0.5",
   "description": "A zero dependency library for converting html to Pug format. With enhanced features like tag skipping and collapsed output",
-  "main": "src/parser.js",
-  "types": "src/parser.d.ts",
+  "main": "dist/parser.js",
+  "types": "dist/parser.d.ts",
   "author": "Matt Gambill",
   "homepage": "https://github.com/NMyVision/html2pug#readme",
   "license": "ISC",
@@ -25,43 +25,25 @@
   "engines": {
     "node": ">= 8"
   },
-  "dependencies": {
-    "@types/node": "^13.9.0",
-    "ts-jest": "^25.2.1"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@babel/core": "^7.8.7",
-    "@babel/preset-env": "^7.8.7",
-    "@babel/preset-typescript": "^7.8.3",
     "@types/jest": "^25.1.4",
     "babel-jest": "^25.1.0",
     "jest": "^25.1.0",
     "lint-staged": "^7.3.0",
     "prettier": "^1.14.3",
+    "ts-jest": "^25.2.1",
     "tslint": "^5.11.0",
     "tslint-config-prettier": "^1.15.0",
     "typescript": "^3.8.3"
-  },
-  "babel": {
-    "presets": [
-      [
-        "@babel/preset-env",
-        {
-          "targets": {
-            "node": "current"
-          }
-        },
-        "@babel/preset-typescript"
-      ]
-    ]
   },
   "gitHooks": {
     "pre-commit": "lint-staged"
   },
   "lint-staged": {
     "*.ts": [
-      "tsc",
-      "tslint -c tslint.json 'src/**/*.ts'",
+      "tsc --outDir dist",
+      "tslint --fix -c tslint.json 'src/**/*.ts'",
       "git add"
     ]
   },

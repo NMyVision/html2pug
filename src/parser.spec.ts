@@ -1,49 +1,81 @@
-import { Parser, defaultOptions } from "./parser"
+import { defaultOptions, Parser } from "./parser"
 
-test('', () => {
+test('Should be in an instance of Parser', () => {
+  expect(new Parser(defaultOptions)).toBeInstanceOf(Parser)
+})
 
-  console.clear()
+describe("Handle attributes", () => {
+  const p = new Parser(defaultOptions);
+  test('check class', () => {
+    const html = `<div class="foo"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`.foo`)
+  })
+  test('check special class names (:)', () => {
 
-  let html = `<!DOCTYPE html>
-<html lang="en">
+    const html = `<div class="foo:hover"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`div(class="foo:hover")`)
+  })
+  test('check special class names (/)', () => {
 
-<head>
-  <title>Jade</title>
-  <script type="text/javascript">
-    const foo = true;
-    let bar = function() {};
-    if (foo) {
-      bar(1 + 5)
-    }
-  </script>
-</head>
+    const html = `<div class="x-translate-1/2"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`div(class="x-translate-1/2")`)
+  })
+  test('check special class names (.)', () => {
 
-<body>
-  <h1>Jade - node template engine</h1>
-  <div class="col -translate-y-1/2 sm:p-1.5" id="container">
-    <p>You are amazing</p>
-    <p>
-      Jade is a terse and simple
-      templating language with a
-      strong focus on performance
-      and powerful features.
-    </p>
-    <b>Hello <span>World</span></b>
-  </div>
+    const html = `<div class="p-1.5"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`div(class="p-1.5")`)
+  })
+  test('check special class names and regular class names', () => {
 
-  <template><child /></template>
+    const html = `<div class="p-a foo:hover"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`.p-a(class="foo:hover")`)
+  })
+  test('with id attribute', () => {
+    const html = `<div id="app" class="p-a foo:hover"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`#app.p-a(class="foo:hover")`)
+  })
+  test('without id attribute', () => {
+    const html = `<div class="foo:hover"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`div(class="foo:hover")`)
+  })
+  test('attributes', () => {
+    const html = `<div data-position="0" class="foo:hover"/>`
+    const output = p.parse(html)
+    expect(output).toBe(`div(data-position="0" class="foo:hover")`)
+  })
+})
 
+describe("Handle text", () => {
+  test('without id attribute', () => {
+    const p = new Parser(defaultOptions);
+    const html = `<div class="foo:hover">Hello World</div>`
+    const output = p.parse(html)
+    expect(output).toBe(`div(class="foo:hover") Hello World`)
+  })
 
-  <CustomModal></CustomModal>
-</body>
-
-</html>`;
-
-  var p = new Parser(defaultOptions);
-
-  var output = p.parse(html)
-
-  console.log(output)
-
-  expect(p).toBeInstanceOf(Parser)
+  test('pre single line', () => {
+    const p = new Parser(defaultOptions);
+    const html = `<pre>Hello World</pre>`
+    const output = p.parse(html)
+    expect(output).toBe('pre Hello World')
+  })
+  test('pre multiline', () => {
+    const p = new Parser(defaultOptions);
+    let html = `
+<pre>
+  Hello World
+  Hello Universe
+</pre>`
+    let output = p.parse(html)
+    console.log(output)
+    let exp = ['pre.', '   Hello World', '   Hello Universe'].join('\n')
+    expect(output).toBe(exp)
+  })
 })

@@ -18,8 +18,8 @@ export const defaultOptions = {
   caseSensitive: true,
   collapseBooleanAttributes: true,
   collapseWhitespace: true,
-  commas: true,
-  doubleQuotes: false,
+  commas: false,
+  doubleQuotes: true,
   fragment: false,
   preserveLineBreaks: true,
   removeEmptyAttributes: true,
@@ -45,65 +45,39 @@ export class Parser {
   quote: string;
   space: string;
 
-  constructor(public options: IOptions) {
+  constructor(public options: IOptions = defaultOptions) {
     this.tab = this.options.tabs ? '\t' : '..'
     this.quote = this.options.doubleQuotes ? `"` : `'`
     this.space = this.options.commas ? `, ` : ` `
   }
 
-
   public parse(content: HTMLElement | string) {
 
     if (content === null) {
       return "";
+
     } if (typeof content === 'string') {
       const fragment = this.parseHTML(content)
       const sb: StringArray = []
-
-      for (var child of fragment.childNodes) {
-        sb.push(this.createMarkup(child as HTMLElement));
-      }
-
+      this.parseNodes(Array.from(fragment.childNodes), sb);
       return sb.join("\n")
     }
 
     return this.createMarkup(content)
-
-
-
   }
 
-
-  private parseHTML = (markup: string): Document | DocumentFragment => {
-    if (markup.toLowerCase().trim().indexOf('<!doctype') === 0) {
-      var doc = document.implementation.createHTMLDocument("");
-      doc.documentElement.innerHTML = markup;
-      console.dir('A', doc)
-      return doc;
+  private parseNodes(children: NodeLike[], sb: StringArray, depth: number = 0) {
+    let text
+    if (children.length) {
+      for (var child of children) {
+        text = this.createMarkup(child as HTMLElement, depth)
+        if (text != null) sb.push(text);
+      }
     }
-
-    if ('content' in document.createElement('template')) {
-      // Template tag exists!
-      var el = document.createElement('template');
-      el.innerHTML = markup;
-      console.dir('B', el.content)
-      return el.content;
-    }
-
-    // Template tag doesn't exist!
-    var docfrag = document.createDocumentFragment();
-    var el1 = document.createElement('body');
-    el1.innerHTML = markup;
-    for (let c of el1.childNodes)
-      docfrag.appendChild(c);
-
-    console.dir('C', docfrag)
-    return docfrag;
   }
 
-
-  private createMarkup(el: HTMLElement, depth: number = 0) {
-    console.group(">", el.tagName, el.nodeType)
+  private createMarkup(el: HTMLElement, depth: number = 0): string | null {
+    // console.group(">", el.tagName || '#TEXT', el.nodeType, depth)
     const sb: StringArray = []
 
     if (el.nodeType === HtmlNodeType.Text) {
@@ -116,23 +90,23 @@ export class Parser {
       this.createElement(sb, el, depth);
     }
 
-    const children = this.activeChildNodes(el)
-
-    if (children.length) {
-      for (var child of children) {
-        sb.push(this.createMarkup(child as HTMLElement, depth + 1));
-      }
+    if (el.nodeType !== HtmlNodeType.Text) {
+      const children = this.activeChildNodes(el)
+      this.parseNodes(children, sb, depth + 1);
     }
-    console.groupEnd();
+    // console.groupEnd();
 
-    return sb.join("\n")
+    return (sb.length === 0) ? null : sb.join("\n")
 
   }
 
   private createText(sb: StringArray, node: NodeLike, depth: number, indent: boolean = true, prefix: string = '|') {
-    // console.log(":: createText", node.textContent)
     const text = node.textContent
-    if (text === null) return
+    if (text === null || text.trim().length === 0) {
+      // console.log(":: createText SKIPPED")
+      return
+    }
+    // console.log(":: createText", node.textContent?.trim()?.length)
     if (text.indexOf('\n') !== -1) {
       sb.push("")
 
@@ -185,11 +159,11 @@ export class Parser {
     if (node.id)
       pugNode.push(`#${node.id}`)
 
-    if (classes)
+    if (classes.length)
       pugNode.push(`.${classes.join('.')}`)
 
     if (specialClasses.length > 0)
-      attributeList.push(`class="${specialClasses.join(" ")}"`)
+      attributeList.push(`class=${this.quote}${specialClasses.join(" ")}${this.quote}`)
 
     if (attributeList.length > 0)
       pugNode.push(`(${attributeList.join(this.space)})`)
@@ -220,7 +194,7 @@ export class Parser {
       }
     }
 
-
+    // console.log("pugNode:", pugNode)
     sb.push(`${this.indent(depth)}${pugNode.join("")}`)
   }
 
@@ -240,6 +214,32 @@ export class Parser {
 
   }
 
+  private parseHTML = (markup: string): Document | DocumentFragment => {
+    if (markup.toLowerCase().trim().indexOf('<!doctype') === 0) {
+      var doc = document.implementation.createHTMLDocument("");
+      doc.documentElement.innerHTML = markup;
+      // console.dir('A', doc)
+      return doc;
+    }
+
+    if ('content' in document.createElement('template')) {
+      // Template tag exists!
+      var el = document.createElement('template');
+      el.innerHTML = markup;
+      // console.dir('B', el.content)
+      return el.content;
+    }
+
+    // Template tag doesn't exist!
+    var docfrag = document.createDocumentFragment();
+    var el1 = document.createElement('body');
+    el1.innerHTML = markup;
+    for (let c of Array.from(el1.childNodes))
+      docfrag.appendChild(c);
+
+    // console.dir('C', docfrag)
+    return docfrag;
+  }
 
   private indent = (cnt: number) => this.tab.repeat(cnt)
 

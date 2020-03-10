@@ -87,8 +87,6 @@ describe("Handle text", () => {
   })
   test('pre multiline', () => {
     const p = new Parser(options);
-
-    console.log(p.tab)
     let html = `
 <pre>
   Hello World

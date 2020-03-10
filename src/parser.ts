@@ -3,6 +3,7 @@
  */
 interface IOptions {
   caseSensitive: boolean;
+  collapse: boolean,
   collapseBooleanAttributes: boolean;
   collapseWhitespace: boolean;
   commas: boolean;
@@ -16,6 +17,7 @@ interface IOptions {
 // Default options for html2pug.
 export const defaultOptions = {
   caseSensitive: true,
+  collapse: true,
   collapseBooleanAttributes: true,
   collapseWhitespace: true,
   commas: false,
@@ -46,7 +48,7 @@ export class Parser {
   space: string;
 
   constructor(public options: IOptions = defaultOptions) {
-    this.tab = this.options.tabs ? '\t' : '..'
+    this.tab = this.options.tabs ? '\t' : '  '
     this.quote = this.options.doubleQuotes ? `"` : `'`
     this.space = this.options.commas ? `, ` : ` `
   }

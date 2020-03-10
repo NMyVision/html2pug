@@ -195,3 +195,65 @@ describe("Handle shortcut", () => {
     expect(output).toBe(exp)
   })
 })
+
+test('complex shorthand', () => {
+    const p = new Parser();
+  const html = `<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <title>Jade</title>
+    <script type="text/javascript">
+      const foo = true;
+      let bar = function() {};
+      if (foo) {
+        bar(1 + 5)
+      }
+    </script>
+  </head>
+
+  <body>
+    <h1>Pug - node template engine</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">Home</li>
+      </ol>
+    </nav>
+    <div class="col" id="container">
+      <p>You are amazing</p>
+      <p>
+        Jade is a terse and simple
+        templating language with a
+        strong focus on performance
+        and powerful features.
+      </p>
+    </div>
+  </body>
+
+</html>`
+   
+  const output = p.parse(html)
+  const exp = [
+    `doctype html`,
+    `html`,
+    `  head`,
+    `    title Jade`,
+    `    script(type="text/javascript").`,
+    `      const foo = true;`,
+    `      let bar = function() {};`,
+    `      if (foo) {`,
+    `      bar(1 + 5)`,
+    `      }`,
+    `  body`,
+    `    h1 Pug - node template engine`,
+    `    nav(aria-label="breadcrumb"): ol.breadcrumb: li.breadcrumb-item.active(aria-current="page") Home`,
+    `    #container.col`,
+    `      p You are amazing`,
+    `      p`,
+    `        | Jade is a terse and simple`,
+    `        | templating language with a`,
+    `        | strong focus on performance`,
+    `        | and powerful features.`
+      ].join('\n')
+    expect(output).toBe(exp)
+  })

@@ -100,7 +100,7 @@ export class Parser {
     }
     // console.groupEnd();
     if (sb.length === 0) { return null; }
-    return (cs) ? sb.join(": ") : sb.join("\n");
+    return (cs) ? sb.map((x, i) => i === 0 ? x : x?.trimStart()).join(": ") : sb.join("\n");
 
   }
 

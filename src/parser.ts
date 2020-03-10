@@ -12,6 +12,7 @@ interface IOptions {
   preserveLineBreaks: boolean;
   removeEmptyAttributes: boolean;
   tabs: boolean;
+  preserveTags: Array<String>
 }
 
 // Default options for html2pug.
@@ -26,6 +27,7 @@ export const defaultOptions = {
   preserveLineBreaks: true,
   removeEmptyAttributes: true,
   tabs: false,
+  preserveTags: ['script', 'pre']
 };
 
 type StringArray = Array<string | null>
@@ -46,11 +48,12 @@ export class Parser {
   tab: string;
   quote: string;
   space: string;
-
+  preserveTags: string[];
   constructor(public options: IOptions = defaultOptions) {
     this.tab = this.options.tabs ? '\t' : '  '
     this.quote = this.options.doubleQuotes ? `"` : `'`
     this.space = this.options.commas ? `, ` : ` `
+    this.preserveTags = this.options.preserveTags.map(x => x.toUpperCase())
   }
 
   public parse(content: HTMLElement | string) {
@@ -83,7 +86,9 @@ export class Parser {
     const sb: StringArray = []
 
     if (el.nodeType === HtmlNodeType.Text) {
-      this.createText(sb, el, depth);
+      const text = el.textContent
+      if (text !== null && text.trim().length !== 0)
+        this.createText(sb, text, depth, '| ', true);
     }
     else if (el.nodeType === HtmlNodeType.DocumentType) {
       sb.push('doctype html')
@@ -102,28 +107,27 @@ export class Parser {
 
   }
 
-  private createText(sb: StringArray, node: NodeLike, depth: number, indent: boolean = true, prefix: string = '|') {
-    const text = node.textContent
-    if (text === null || text.trim().length === 0) {
-      // console.log(":: createText SKIPPED")
-      return
-    }
-    // console.log(":: createText", node.textContent?.trim()?.length)
-    if (text.indexOf('\n') !== -1) {
-      sb.push("")
+  private createText(sb: StringArray, text: String, depth: number, prefix: string = '| ', preserve: boolean = false) {
+    let segments = text.split('\n')
+    let lines: string[] = []
+    segments.forEach((segment, index) => {
+      const a: string[] = []
+      let trimmed_segment = segment.trim()
+      if (trimmed_segment.length === 0 && (index === 0 || index == segments.length - 1)) return
+      a.push(this.indent(depth))
+      if (prefix)
+        a.push(prefix)
+      if (segment.startsWith(' ') && !segment.startsWith('  ') && preserve)
+        a.push(' ')
+      if (trimmed_segment.length > 0)
+        a.push(trimmed_segment)
+      if (segment.endsWith(' ') && preserve)
+        a.push(' ')
 
-      var segments = text.trim().split('\r\n')
+      lines.push(a.join(''))
 
-      for (var segment in segments) {
-        sb.push(`${this.indent(depth)}| ${segment}`)
-      }
-    }
-    else {
-      if (indent)
-        sb.push(`${this.indent(depth)}| ${text}`)
-      else
-        sb.push(` ${text}`)
-    }
+    })
+    sb.push(lines.join('\n'))
   }
 
   private createElement(sb: StringArray, node: HTMLElement, depth: number) {
@@ -173,23 +177,15 @@ export class Parser {
 
     if (node.hasChildNodes && node.childNodes.length === 1 && node.firstChild?.nodeType === HtmlNodeType.Text) {
       let text = node.firstChild?.textContent
-      if (text !== null) {
-        if (this.isMultiLine(text)) {
-          const a: string[] = []
-          if (node.nodeName === 'SCRIPT' || node.nodeName === 'PRE') {
+      if (text !== null && text.trim().length !== 0) {
+        if ((text.split('\n') || []).length > 1) {
+          if (this.preserveTags.includes(node.nodeName)) {
             pugNode.push('.\n')
-            text.split('\n').forEach((line, index) => {
-              if (line.trim().length > 0 && this.options.preserveLineBreaks)
-                a.push(`${this.indent(depth)} ${line}`)
-            })
+            this.createText(pugNode, text, depth + 1, "")
           } else {
             pugNode.push('\n')
-            text.split('\n').forEach(line => {
-              if (line.trim().length > 0)
-                a.push(`${this.indent(depth + 1)}| ${line.trim()}`)
-            })
+            this.createText(pugNode, text, depth + 1)
           }
-          pugNode.push(a.join('\n'))
         }
         else
           pugNode.push(` ${text}`)
@@ -244,6 +240,4 @@ export class Parser {
   }
 
   private indent = (cnt: number) => this.tab.repeat(cnt)
-
-  private isMultiLine = (value: string | null): boolean => (value?.split('\n') || []).length > 1;
 }

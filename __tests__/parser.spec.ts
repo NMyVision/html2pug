@@ -1,4 +1,4 @@
-import { defaultOptions, Parser } from "./parser"
+import { defaultOptions, Parser } from "../src/parser"
 
 test('Should be in an instance of Parser', () => {
   expect(new Parser(defaultOptions)).toBeInstanceOf(Parser)
@@ -53,11 +53,30 @@ describe("Handle attributes", () => {
 })
 
 describe("Handle text", () => {
-  test('without id attribute', () => {
+  test('simple text', () => {
     const p = new Parser(defaultOptions);
     const html = `<div class="foo:hover">Hello World</div>`
     const output = p.parse(html)
     expect(output).toBe(`div(class="foo:hover") Hello World`)
+  })
+  test('trailing space', () => {
+    const p = new Parser(defaultOptions);
+    const html = `<div>Hello World </div>`
+    const output = p.parse(html)
+    expect(output).toBe(`div Hello World `)
+  })
+  test('text wrapped with spaces', () => {
+    const p = new Parser(defaultOptions);
+    p.tab = "..";
+    const html = `<div><a>Hello World</a> | <a>Hello Universe</a></div>`
+    const output = p.parse(html)
+    let exp = [
+      'div',
+      '..a Hello World',
+      '..|  | ',
+      '..a Hello Universe'
+    ].join('\n')
+    expect(output).toBe(exp)
   })
 
   test('pre single line', () => {
@@ -68,14 +87,60 @@ describe("Handle text", () => {
   })
   test('pre multiline', () => {
     const p = new Parser(defaultOptions);
+    p.tab = "..";
+    console.log(p.tab)
     let html = `
 <pre>
   Hello World
   Hello Universe
 </pre>`
     let output = p.parse(html)
-    console.log(output)
-    let exp = ['pre.', '   Hello World', '   Hello Universe'].join('\n')
+    let exp = [
+      'pre.',
+      '..Hello World',
+      '..Hello Universe'
+    ].join('\n')
+    expect(output).toBe(exp)
+  })
+  test('pre multiline empty line', () => {
+    const p = new Parser(defaultOptions);
+    p.tab = "..";
+    let html = `
+<pre>
+  Hello World
+
+  Hello Universe
+</pre>`
+    let output = p.parse(html)
+
+    let exp = [
+      'pre.',
+      '..Hello World',
+      '..',
+      '..Hello Universe'
+    ].join('\n')
+    expect(output).toBe(exp)
+  })
+  test('complex structure', () => {
+    const p = new Parser(defaultOptions);
+    p.tab = "..";
+    let html = `
+  <div class="sm:mr-6">
+    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="..." clip-rule="evenodd" />
+      <path d="..." />
+    </svg>
+    Full-time
+  </div>`
+
+    let output = p.parse(html)
+    let exp = [
+      `div(class="sm:mr-6")`,
+      `..svg.w-6.h-6(fill="currentColor" viewBox="0 0 20 20")`,
+      `....path(fill-rule="evenodd" d="..." clip-rule="evenodd")`,
+      `....path(d="...")`,
+      `..| Full-time`
+    ].join('\n')
     expect(output).toBe(exp)
   })
 })

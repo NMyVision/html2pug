@@ -183,4 +183,15 @@ describe("Handle shortcut", () => {
     const exp = `#app: span Hello World`
     expect(output).toBe(exp)
   })
+  test('complex shorthand', () => {
+    const p = new Parser();
+    const html = `<nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">Home</li>
+      </ol>
+    </nav>`
+    const output = p.parse(html)
+    const exp = `nav(aria-label="breadcrumb"): ol.breadcrumb: li.breadcrumb-item.active(aria-current="page") Home`
+    expect(output).toBe(exp)
+  })
 })

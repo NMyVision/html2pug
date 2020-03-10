@@ -205,16 +205,13 @@ export class Parser {
   }
 
   private canShorten(node: NodeLike): boolean {
-    if (node.hasChildNodes && node.childNodes.length === 1) {
-      if (node.childNodes[0].nodeType === HtmlNodeType.Text) {
-        return ((node.childNodes[0].textContent?.split('\n') || []).length > 1) ? false : true
-      }
-
-      return this.canShorten(node.childNodes[0])
-    }
+    const ac = this.activeChildNodes(node)
+    if (ac.length === 1)
+      return this.canShorten(ac[0])
+    else if (ac.length === 0)
+      return true
     return false
   }
-
 
   private activeChildNodes(node: NodeLike): NodeLike[] {
     let children = Array.from(node.childNodes)

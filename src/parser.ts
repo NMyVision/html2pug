@@ -2,32 +2,24 @@
  * Defines all the options for html2pug.
  */
 interface IOptions {
-  caseSensitive: boolean;
-  collapse: boolean,
-  collapseBooleanAttributes: boolean;
-  collapseWhitespace: boolean;
+  collapse: boolean;
   commas: boolean;
   doubleQuotes: boolean;
-  fragment: boolean;
-  preserveLineBreaks: boolean;
-  removeEmptyAttributes: boolean;
   tabs: boolean;
-  preserveTags: Array<String>
+  preserveTags: String[]
+  tabChar: string;
+  whitespaceChar: string;
 }
 
 // Default options for html2pug.
 export const defaultOptions = {
-  caseSensitive: true,
   collapse: true,
-  collapseBooleanAttributes: true,
-  collapseWhitespace: true,
   commas: false,
   doubleQuotes: true,
-  fragment: false,
-  preserveLineBreaks: true,
-  removeEmptyAttributes: true,
   tabs: false,
-  preserveTags: ['script', 'pre']
+  preserveTags: ['script', 'pre'],
+  tabChar: '\t',
+  whitespaceChar: '  '
 };
 
 type StringArray = Array<string | null>
@@ -45,12 +37,13 @@ enum HtmlNodeType {
 
 export class Parser {
 
-  tab: string;
-  quote: string;
-  space: string;
-  preserveTags: string[];
+  private tab: string;
+  private quote: string;
+  private space: string;
+  private preserveTags: string[];
+
   constructor(public options: IOptions = defaultOptions) {
-    this.tab = this.options.tabs ? '\t' : '  '
+    this.tab = this.options.tabs ? options.tabChar : options.whitespaceChar
     this.quote = this.options.doubleQuotes ? `"` : `'`
     this.space = this.options.commas ? `, ` : ` `
     this.preserveTags = this.options.preserveTags.map(x => x.toUpperCase())
@@ -74,9 +67,10 @@ export class Parser {
   private parseNodes(children: NodeLike[], sb: StringArray, depth: number = 0) {
     let text
     if (children.length) {
-      for (var child of children) {
+      for (const child of children) {
+
         text = this.createMarkup(child as HTMLElement, depth)
-        if (text != null) sb.push(text);
+        if (text != null) { sb.push(text); }
       }
     }
   }
@@ -87,8 +81,9 @@ export class Parser {
 
     if (el.nodeType === HtmlNodeType.Text) {
       const text = el.textContent
-      if (text !== null && text.trim().length !== 0)
+      if (text !== null && text.trim().length !== 0) {
         this.createText(sb, text, depth, '| ', true);
+      }
     }
     else if (el.nodeType === HtmlNodeType.DocumentType) {
       sb.push('doctype html')
@@ -97,32 +92,38 @@ export class Parser {
       this.createElement(sb, el, depth);
     }
 
+    const cs = this.canShorten(el) && this.options.collapse
+
     if (el.nodeType !== HtmlNodeType.Text) {
       const children = this.activeChildNodes(el)
-      this.parseNodes(children, sb, depth + 1);
+      this.parseNodes(children, sb, cs ? depth : depth + 1);
     }
     // console.groupEnd();
-
-    return (sb.length === 0) ? null : sb.join("\n")
+    if (sb.length === 0) { return null; }
+    return (cs) ? sb.join(": ") : sb.join("\n");
 
   }
 
   private createText(sb: StringArray, text: String, depth: number, prefix: string = '| ', preserve: boolean = false) {
-    let segments = text.split('\n')
-    let lines: string[] = []
+    const segments = text.split('\n')
+    const lines: string[] = []
     segments.forEach((segment, index) => {
       const a: string[] = []
-      let trimmed_segment = segment.trim()
-      if (trimmed_segment.length === 0 && (index === 0 || index == segments.length - 1)) return
+      const trimmed_segment = segment.trim()
+      if (trimmed_segment.length === 0 && (index === 0 || index == segments.length - 1)) { return }
       a.push(this.indent(depth))
-      if (prefix)
+      if (prefix) {
         a.push(prefix)
-      if (segment.startsWith(' ') && !segment.startsWith('  ') && preserve)
+      }
+      if (segment.startsWith(' ') && !segment.startsWith('  ') && preserve) {
         a.push(' ')
-      if (trimmed_segment.length > 0)
+      }
+      if (trimmed_segment.length > 0) {
         a.push(trimmed_segment)
-      if (segment.endsWith(' ') && preserve)
+      }
+      if (segment.endsWith(' ') && preserve) {
         a.push(' ')
+      }
 
       lines.push(a.join(''))
 
@@ -147,7 +148,7 @@ export class Parser {
         shorten = true
       }
       else if (name === "class") {
-        let c = value.split(" ")
+        const c = value.split(" ")
         specialClasses = c.filter(x => /[:.\/]/.test(x))
         classes = c.filter(x => !(/[:.\/]/.test(x)))
         shorten = shorten || classes.length > 0
@@ -159,24 +160,30 @@ export class Parser {
 
 
     // Remove div tagName
-    if (tagName === "div" && shorten)
+    if (tagName === "div" && shorten) {
       pugNode.splice(0, 1)
+    }
 
-    if (node.id)
+    if (node.id) {
       pugNode.push(`#${node.id}`)
+    }
 
-    if (classes.length)
+    if (classes.length) {
       pugNode.push(`.${classes.join('.')}`)
+    }
 
-    if (specialClasses.length > 0)
+    if (specialClasses.length > 0) {
       attributeList.push(`class=${this.quote}${specialClasses.join(" ")}${this.quote}`)
+    }
 
-    if (attributeList.length > 0)
+    if (attributeList.length > 0) {
       pugNode.push(`(${attributeList.join(this.space)})`)
+    }
 
 
-    if (node.hasChildNodes && node.childNodes.length === 1 && node.firstChild?.nodeType === HtmlNodeType.Text) {
-      let text = node.firstChild?.textContent
+
+    if (node.hasChildNodes && node.childNodes.length === 1 && node.childNodes[0].nodeType === HtmlNodeType.Text) {
+      const text = node.childNodes[0].textContent
       if (text !== null && text.trim().length !== 0) {
         if ((text.split('\n') || []).length > 1) {
           if (this.preserveTags.includes(node.nodeName)) {
@@ -187,8 +194,9 @@ export class Parser {
             this.createText(pugNode, text, depth + 1)
           }
         }
-        else
+        else {
           pugNode.push(` ${text}`)
+        }
       }
     }
 
@@ -196,15 +204,28 @@ export class Parser {
     sb.push(`${this.indent(depth)}${pugNode.join("")}`)
   }
 
-  private activeChildNodes(node: NodeLike): Array<NodeLike> {
+  private canShorten(node: NodeLike): boolean {
+    if (node.hasChildNodes && node.childNodes.length === 1) {
+      if (node.childNodes[0].nodeType === HtmlNodeType.Text) {
+        return ((node.childNodes[0].textContent?.split('\n') || []).length > 1) ? false : true
+      }
+
+      return this.canShorten(node.childNodes[0])
+    }
+    return false
+  }
+
+
+  private activeChildNodes(node: NodeLike): NodeLike[] {
     let children = Array.from(node.childNodes)
 
-    if (node.nodeName === "TEMPLATE")
+    if (node.nodeName === "TEMPLATE") {
       children = Array.from((node as HTMLTemplateElement).content.childNodes)
+    }
 
     const hasElements = (node.nodeType === HtmlNodeType.Element && children.filter(x => x.nodeType === HtmlNodeType.Element).length)
 
-    let results = hasElements ?
+    const results = hasElements ?
       children.filter(x => x.nodeType === HtmlNodeType.Element || (x.nodeType === HtmlNodeType.Text && x.textContent?.trim()))
       : []
     // console.log(":: activeChildNodes", hasElements, results, node.nodeName)
@@ -214,7 +235,7 @@ export class Parser {
 
   private parseHTML = (markup: string): Document | DocumentFragment => {
     if (markup.toLowerCase().trim().indexOf('<!doctype') === 0) {
-      var doc = document.implementation.createHTMLDocument("");
+      const doc = document.implementation.createHTMLDocument("");
       doc.documentElement.innerHTML = markup;
       // console.dir('A', doc)
       return doc;
@@ -222,18 +243,19 @@ export class Parser {
 
     if ('content' in document.createElement('template')) {
       // Template tag exists!
-      var el = document.createElement('template');
+      const el = document.createElement('template');
       el.innerHTML = markup;
       // console.dir('B', el.content)
       return el.content;
     }
 
     // Template tag doesn't exist!
-    var docfrag = document.createDocumentFragment();
-    var el1 = document.createElement('body');
+    const docfrag = document.createDocumentFragment();
+    const el1 = document.createElement('body');
     el1.innerHTML = markup;
-    for (let c of Array.from(el1.childNodes))
+    for (const c of Array.from(el1.childNodes)) {
       docfrag.appendChild(c);
+    }
 
     // console.dir('C', docfrag)
     return docfrag;

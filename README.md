@@ -43,13 +43,25 @@ Turns this :unamused:
 Into this :tada:
 ```pug
 doctype html
-html(lang='en')
+html
   head
-    title Hello World!
-   body
+    title Jade
+    script(type="text/javascript").
+      const foo = true;
+      let bar = function() {};
+      if (foo) {
+      bar(1 + 5)
+      }
+  body
+    h1 Pug - node template engine
     nav(aria-label="breadcrumb"): ol.breadcrumb: li.breadcrumb-item.active(aria-current="page") Home
-    #content
-      h1.title Hello World!
+    #container.col
+      p You are amazing
+      p
+        | Jade is a terse and simple
+        | templating language with a
+        | strong focus on performance
+        | and powerful features.
 ```
 
 
@@ -66,10 +78,16 @@ const pug = parser.parse(html)
 
 ### Options
 
-Name | Type | Default | Description
---- | --- | --- | ---
-tabs | Boolean | `false` | Use tabs instead of spaces
-collapse | Boolean | `true` | Combine when possible using : notation
+Name | Version | Type | Default | Description
+--- | --- | --- | --- | ---
+tabs | all | Boolean | `false` | Use tabs instead of spaces
+collapse | all | Boolean | `true` | Combine when possible using : notation
+commas | v2 | Boolean | `false` | Add commas between attributes
+doubleQuotes | v2 | Boolean | `true` | Use double quotes 
+tabs | v2 | Boolean | `false` | Use tabs (`tabChar`) otherwise use (`whitespaceChar`)
+preserveTags | v2 | Boolean | `['script', 'pre']` | element renders with . ending
+tabChar | v2 | Boolean | `'\t'` | system tab character
+whitespaceChar | v2 | Boolean | `'  '` | two spaces
 
 <!--
 textElements | String[] | `['pre','script']`| element renders with . ending

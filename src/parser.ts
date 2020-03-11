@@ -182,10 +182,11 @@ export class Parser {
 
 
 
-    if (node.hasChildNodes && node.childNodes.length === 1 && node.childNodes[0].nodeType === HtmlNodeType.Text) {
+    if (node.hasChildNodes() && node.childNodes.length === 1 && node.childNodes[0].nodeType === HtmlNodeType.Text) {
       const text = node.childNodes[0].textContent
       if (text !== null && text.trim().length !== 0) {
-        if ((text.split('\n') || []).length > 1) {
+        if (this.isMultiline(text)
+          && ((this.options.collapse && this.isMultiline(text.trim())) || this.options.collapse === false)) {
           if (this.preserveTags.includes(node.nodeName)) {
             pugNode.push('.\n')
             this.createText(pugNode, text, depth + 1, "")
@@ -195,7 +196,10 @@ export class Parser {
           }
         }
         else {
-          pugNode.push(` ${text}`)
+          if (text.includes('\n'))
+            pugNode.push(` ${text.trim()}`)
+          else
+            pugNode.push(` ${text}`)
         }
       }
     }
@@ -257,6 +261,8 @@ export class Parser {
     // console.dir('C', docfrag)
     return docfrag;
   }
+
+  private isMultiline = (text: string) => (text.split('\n') || []).length > 1
 
   private indent = (cnt: number) => this.tab.repeat(cnt)
 }

@@ -65,7 +65,7 @@ html
 ```
 
 
-### Programmatically
+## Programmatically
 
 ```js
 import Parser from "@nmyvision/html2pug"
@@ -76,7 +76,7 @@ const html = '<header><h1 class="title">Hello World!</h1></header>'
 const pug = parser.parse(html)
 ```
 
-### Options
+## Options
 
 Name | Version | Type | Default | Description
 --- | --- | --- | --- | ---
@@ -89,6 +89,34 @@ preserveTags | v2 | Boolean | `['script', 'pre']` | element renders with . endin
 tabChar | v2 | Boolean | `'\t'` | system tab character
 whitespaceChar | v2 | Boolean | `'  '` | two spaces
 
+## Why 
+
+*Why even create another HTML 2 Pug/Jade library?*
+
+There were a few scenerios that most libraries didn't address. 
+
+- Shorthand 
+
+```
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li>Sample</li>
+  </ol>
+</nav>
+
+nav(aria-label="breadcrumb"): ol.breadcrumb: li Sample
+```
+
+- Proper handle of non typical classnames 
+
+```
+<ol class="sm:hover x-translate-1/2">
+  Stuff  
+</ol>
+
+ol(class="sm:hover x-translate-1/2") 
+  | Stuff
+```
 <!--
 textElements | String[] | `['pre','script']`| element renders with . ending
 recommended | Boolean | `false` | wrap extra \| around elements surrounded by text

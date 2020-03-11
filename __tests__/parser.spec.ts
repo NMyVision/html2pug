@@ -176,7 +176,33 @@ describe("Handle shortcut", () => {
     ].join('\n')
     expect(output).toBe(exp)
   })
-  test('simple shorthand', () => {
+  test('simple shorthand inline', () => {
+    const p = new Parser();
+    const html = `<span class="sm:hover x-translate-1/2">Stuff</span>`
+    const output = p.parse(html)
+    const exp = `span(class="sm:hover x-translate-1/2") Stuff`
+    expect(output).toBe(exp)
+  })
+  test('simple shorthand multiline', () => {
+    const p = new Parser();
+    const html = `<span class="sm:hover x-translate-1/2">
+      Stuff
+    </span>`
+    const output = p.parse(html)
+    const exp = `span(class="sm:hover x-translate-1/2") Stuff`
+    expect(output).toBe(exp)
+  })
+  test('simple shorthand multiline not allowed', () => {
+    const options = Object.assign({}, defaultOptions, { whitespaceChar: '..', collapse: false })
+    const p = new Parser(options);
+    const html = `<span class="sm:hover x-translate-1/2">
+      Stuff
+    </span>`
+    const output = p.parse(html)
+    const exp = [`span(class="sm:hover x-translate-1/2")`, `..| Stuff`].join('\n')
+    expect(output).toBe(exp)
+  })
+  test('shorthand multiple children', () => {
     const p = new Parser();
     const html = `<div id="app"><span>Hello World</span></div>`
     const output = p.parse(html)
@@ -197,7 +223,7 @@ describe("Handle shortcut", () => {
 })
 
 test('complex shorthand', () => {
-    const p = new Parser();
+  const p = new Parser();
   const html = `<!DOCTYPE html>
 <html lang="en">
 
@@ -231,7 +257,7 @@ test('complex shorthand', () => {
   </body>
 
 </html>`
-   
+
   const output = p.parse(html)
   const exp = [
     `doctype html`,
@@ -254,6 +280,6 @@ test('complex shorthand', () => {
     `        | templating language with a`,
     `        | strong focus on performance`,
     `        | and powerful features.`
-      ].join('\n')
-    expect(output).toBe(exp)
-  })
+  ].join('\n')
+  expect(output).toBe(exp)
+})

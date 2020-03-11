@@ -82,7 +82,7 @@ const pug = parser.parse(html)
 ## Options
 
 Name | Version | Type | Default | Description
---- | --- | --- | --- | ---
+--- |:---:| --- |:---:| ---
 tabs | all | Boolean | `false` | Use tabs instead of spaces
 collapse | all | Boolean | `true` | Combine when possible using : notation
 commas | v2 | Boolean | `false` | Add commas between attributes

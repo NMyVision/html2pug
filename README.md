@@ -1,5 +1,8 @@
 # html2pug
 
+
+#### ✔ Documentation is for v2 which is a complete rewrite 
+
 Converts **HTML** to **Pug** templating language (_formerly Jade_).  
 Requires Node.js version `7.6` or higher. Library written in typescript.
 
@@ -89,33 +92,81 @@ preserveTags | v2 | Boolean | `['script', 'pre']` | element renders with . endin
 tabChar | v2 | Boolean | `'\t'` | system tab character
 whitespaceChar | v2 | Boolean | `'  '` | two spaces
 
-## Why 
+# Why 
 
 *Why even create another HTML 2 Pug/Jade library?*
 
 There were a few scenerios that most libraries didn't address. 
 
-- Shorthand 
+## Shorthand 
 
-```
+***source***
+```html
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
     <li>Sample</li>
   </ol>
 </nav>
+```
+**before**
 
+```pug
+nav(aria-label="breadcrumb")
+  ol.breadcrumb
+    li Sample
+```
+
+**after** (with collapse flag)
+```pug
 nav(aria-label="breadcrumb"): ol.breadcrumb: li Sample
 ```
+## Proper handle of non typical class names 
 
-- Proper handle of non typical classnames 
-
-```
+**source**
+```html
 <ol class="sm:hover x-translate-1/2">
   Stuff  
 </ol>
 
-ol(class="sm:hover x-translate-1/2") 
+<div class="sm:hover x-translate-1/2">
+  Stuff  
+</div>
+```
+**before** note period "ol."
+```pug
+ol.(class='sm:hover x-translate-1/2')
   | Stuff
+
+.(class='sm:hover x-translate-1/2')
+  | Stuff
+```
+
+**after**
+```pug
+ol(class="sm:hover x-translate-1/2") Stuff
+
+div(class="sm:hover x-translate-1/2") Stuff
+```
+---
+
+## Some invalid results 
+
+**source**
+```html
+<a>Link A</a> | <a>Link</a>
+```
+**before**
+```pug
+a Link A
+|  
+a Link B
+```
+
+**after** spaces shown with '.'
+```pug
+a Link A
+| .|.
+a Link B
 ```
 <!--
 textElements | String[] | `['pre','script']`| element renders with . ending
